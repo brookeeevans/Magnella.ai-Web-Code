@@ -1,0 +1,25 @@
+name: Mirror to B-Lynk safety repo
+
+# Pushes a full mirror of this repo (every branch + tag) to
+# productionblynk/magnella-account-mirror on every change to main.
+# The mirror is a private B-Lynk-owned backup. Do not edit the mirror
+# directly — it gets force-overwritten on every push here.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push mirror
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          git push --mirror "https://x-access-token:${MIRROR_PAT}@github.com/productionblynk/magnella-account-mirror.git"
