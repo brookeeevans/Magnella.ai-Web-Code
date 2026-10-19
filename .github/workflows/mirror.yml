@@ -1,5 +1,10 @@
 name: Mirror to B-Lynk safety repo
 
+# Pushes a full mirror of this repo (every branch + tag) to
+# productionblynk/magnella-account-mirror on every change to main.
+# The mirror is a private B-Lynk-owned backup. Do not edit the mirror
+# directly — it gets force-overwritten on every push here.
+
 on:
   push:
     branches: [main]
@@ -12,28 +17,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # Don't persist GITHUB_TOKEN as the git credential helper.
+          # Without this, actions/checkout sets a global git extraheader
+          # that forces ALL github.com requests to use GITHUB_TOKEN
+          # (which only has access to this repo), overriding our
+          # URL-embedded MIRROR_PAT and blocking the cross-repo push.
+          persist-credentials: false
 
-      - name: Verify API access from runner
-        env:
-          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
-        run: |
-          echo "testing API access to mirror repo..."
-          http_status=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
-            -H "Authorization: token ${MIRROR_PAT}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/productionblynk/magnella-account-mirror)
-          echo "status: $http_status"
-          echo "response (truncated):"
-          head -c 300 /tmp/body.txt
-          echo
-
-      - name: Try push with username:token format
-        env:
-          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
-        run: |
-          git push --mirror "https://tomastampablynk:${MIRROR_PAT}@github.com/productionblynk/magnella-account-mirror.git" || echo "username:token format failed"
-
-      - name: Try push with x-access-token format
+      - name: Push mirror
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
