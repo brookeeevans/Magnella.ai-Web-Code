@@ -13,22 +13,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Deep diagnostic
+      - name: Verify API access from runner
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
-          echo "length: ${#MIRROR_PAT}"
-          # First 4 char CODES (unmaskable integers)
-          echo -n "first 4 char codes: "
-          printf '%s' "$MIRROR_PAT" | head -c 4 | od -An -tu1 | tr -s ' '
-          # SHA-256 of the value - compare against expected
-          echo -n "SHA-256: "
-          printf '%s' "$MIRROR_PAT" | sha256sum
-          # Also show if there are any trailing/leading whitespace or hidden chars
-          echo "hex dump of first 8 bytes:"
-          printf '%s' "$MIRROR_PAT" | head -c 8 | od -An -tx1
+          echo "testing API access to mirror repo..."
+          http_status=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            -H "Authorization: token ${MIRROR_PAT}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/productionblynk/magnella-account-mirror)
+          echo "status: $http_status"
+          echo "response (truncated):"
+          head -c 300 /tmp/body.txt
+          echo
 
-      - name: Push mirror
+      - name: Try push with username:token format
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          git push --mirror "https://tomastampablynk:${MIRROR_PAT}@github.com/productionblynk/magnella-account-mirror.git" || echo "username:token format failed"
+
+      - name: Try push with x-access-token format
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
         run: |
