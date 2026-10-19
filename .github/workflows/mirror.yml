@@ -18,6 +18,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify secret present
+        env:
+          MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
+        run: |
+          echo "secret length: ${#MIRROR_PAT}"
+          echo "starts with ghp_: $(if [[ \"$MIRROR_PAT\" == ghp_* ]]; then echo yes; else echo no; fi)"
+
       - name: Push mirror
         env:
           MIRROR_PAT: ${{ secrets.MIRROR_PAT }}
